@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HonyMix | Inventory &amp; Sales Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Ambient Animated Background -->
+  <div class="ambient-bg" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+  </div>
+
+  <!-- Login Screen -->
+  <section id="loginView" class="login-shell">
+    <div class="login-card animate-rise">
+      <div class="brand-badge">
+        <span class="brand-icon" aria-hidden="true">🍯</span>
+        <div>
+          <h1>HonyMix<span>.</span></h1>
+          <p>Small Business Inventory &amp; POS</p>
+        </div>
+      </div>
+
+      <form id="loginForm" class="stack-form">
+        <label>
+          <span>Apps Script Web App URL <small>(Optional — leave blank for Demo Mode)</small></span>
+          <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+        </label>
+
+        <div class="grid-2">
+          <label>
+            <span>Username</span>
+            <input type="text" id="usernameInput" value="admin" required autocomplete="username">
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" id="passwordInput" value="Honymix2026" required autocomplete="current-password">
+          </label>
+        </div>
+
+        <button type="submit" id="loginBtn" class="btn btn-primary btn-block">
+          <span>Open Workspace</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <button type="button" id="demoModeBtn" class="btn btn-ghost btn-block">
+          Launch Instant Demo Mode (No Setup Needed)
+        </button>
+
+        <p id="loginError" class="form-error" role="alert"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Main App Shell -->
+  <div id="appShell" class="app-shell hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-mini">
+          <span class="brand-icon">🍯</span>
+          <div>
+            <strong>HonyMix<span>.</span></strong>
+            <small id="connectionPill" class="conn-pill demo">Demo Mode</small>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="icon-btn mobile-only" aria-label="Close menu">✕</button>
+      </div>
+
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-btn active" data-tab="dashboard">
+          <span class="nav-ico">📊</span><span>Dashboard</span>
+        </button>
+        <button class="nav-btn" data-tab="pos">
+          <span class="nav-ico">⚡</span><span>Quick Sale (POS)</span>
+        </button>
+        <button class="nav-btn" data-tab="purchases">
+          <span class="nav-ico">📦</span><span>Restock / Purchases</span>
+        </button>
+        <button class="nav-btn" data-tab="products">
+          <span class="nav-ico">🏷️</span><span>Products &amp; Stock</span>
+        </button>
+        <button class="nav-btn" data-tab="automations">
+          <span class="nav-ico">🤖</span><span>Easy Automations</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="syncBtn" class="btn btn-secondary btn-sm btn-block">
+          <span id="syncIcon">↻</span> Sync Data
+        </button>
+        <button id="logoutBtn" class="btn btn-ghost btn-sm btn-block">Sign Out</button>
+      </div>
+    </aside>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="openSidebarBtn" class="icon-btn mobile-only" aria-label="Open menu">☰</button>
+          <div>
+            <h2 id="viewTitle">Business Overview</h2>
+            <p id="viewSubtitle" class="muted">Real-time sales, profit &amp; stock health</p>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="btn btn-primary btn-sm" data-jump="pos">+ Record Sale</button>
+          <button class="btn btn-secondary btn-sm" data-jump="purchases">+ Add Stock</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-panel active">
+          <div id="lowStockBanner" class="alert-banner hidden"></div>
+
+          <div class="kpi-grid">
+            <article class="kpi-card">
+              <span class="kpi-label">Total Revenue</span>
+              <strong id="kpiRevenue" class="kpi-value">₦0</strong>
+              <small id="kpiSalesCount" class="kpi-sub">0 transactions</small>
+            </article>
+
+            <article class="kpi-card">
+              <span class="kpi-label">Estimated Profit</span>
+              <strong id="kpiProfit" class="kpi-value accent-green">₦0</strong>
+              <small id="kpiMargin" class="kpi-sub">0% avg margin</small>
+            </article>
+
+            <article class="kpi-card">
+              <span class="kpi-label">Units in Stock</span>
+              <strong id="kpiStock" class="kpi-value">0</strong>
+              <small id="kpiSkuCount" class="kpi-sub">0 active products</small>
+            </article>
+
+            <article class="kpi-card">
+              <span class="kpi-label">Low Stock Alerts</span>
+              <strong id="kpiLowStock" class="kpi-value accent-amber">0</strong>
+              <small class="kpi-sub">Items ≤ 5 units left</small>
+            </article>
+          </div>
+
+          <div class="dashboard-split">
+            <!-- Visual Revenue & Stock Chart -->
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Top Products by Revenue</h3>
+                  <p class="muted">Live performance breakdown</p>
+                </div>
+              </div>
+              <div id="revenueBars" class="bar-chart"></div>
+            </div>
+
+            <!-- Stock Health Watchlist -->
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Stock Watchlist</h3>
+                  <p class="muted">Auto-monitored inventory levels</p>
+                </div>
+                <button class="btn btn-ghost btn-sm" data-jump="products">View All →</button>
+              </div>
+              <div id="stockWatchlist" class="watchlist"></div>
+            </div>
+          </div>
+
+          <!-- Recent Sales Feed -->
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Recent Sales Activity</h3>
+                <p class="muted">Latest recorded transactions</p>
+              </div>
+              <button id="exportSalesCsvBtn" class="btn btn-secondary btn-sm">⬇ Export CSV</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                    <th>Profit</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recentSalesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: QUICK SALE (POS) -->
+        <section id="tab-pos" class="tab-panel">
+          <div class="pos-layout">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Record New Sale</h3>
+                  <p class="muted">Built-in stock guard automatically prevents overselling</p>
+                </div>
+              </div>
+
+              <form id="saleForm" class="stack-form">
+                <label>
+                  <span>Select Product</span>
+                  <select id="saleProductSelect" required></select>
+                </label>
+
+                <div id="saleStockHint" class="stock-pill-info">Select a product to check available stock</div>
+
+                <div class="grid-2">
+                  <label>
+                    <span>Quantity Sold</span>
+                    <input type="number" id="saleQtyInput" min="1" value="1" required>
+                  </label>
+                  <label>
+                    <span>Selling Price / Unit</span>
+                    <input type="number" id="salePriceInput" min="0" step="0.01" required>
+                  </label>
+                </div>
+
+                <div class="grid-3">
+                  <label>
+                    <span>Sale Date</span>
+                    <input type="date" id="saleDateInput" required>
+                  </label>
+                  <label>
+                    <span>Payment Method</span>
+                    <select id="salePaymentSelect">
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="POS Card">POS Card</option>
+                      <option value="Mobile Money">Mobile Money</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Payment Status</span>
+                    <select id="saleStatusSelect">
+                      <option value="Paid">Paid</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="live-summary-box">
+                  <div>
+                    <span>Total Sale Amount</span>
+                    <strong id="saleTotalPreview">₦0</strong>
+                  </div>
+                  <div>
+                    <span>Est. Net Profit</span>
+                    <strong id="saleProfitPreview" class="accent-green">₦0</strong>
+                  </div>
+                </div>
+
+                <button type="submit" id="submitSaleBtn" class="btn btn-primary btn-block">
+                  Complete Sale &amp; Deduct Stock
+                </button>
+              </form>
+            </div>
+
+            <!-- Instant Digital Receipt Preview -->
+            <div class="card receipt-card">
+              <div class="card-head">
+                <div>
+                  <h3>Live Customer Receipt</h3>
+                  <p class="muted">Ready to print or share after checkout</p>
+                </div>
+                <button type="button" id="printReceiptBtn" class="btn btn-secondary btn-sm">🖨 Print</button>
+              </div>
+
+              <div id="receiptPreview" class="receipt-paper">
+                <div class="receipt-top">
+                  <strong>HONYMIX STORE</strong>
+                  <span>Sales Receipt</span>
+                  <small id="recDate">—</small>
+                </div>
+                <div class="receipt-divider"></div>
+                <div class="receipt-row">
+                  <span id="recItem">Select a product...</span>
+                  <strong id="recLineTotal">₦0</strong>
+                </div>
+                <div class="receipt-sub" id="recSub">0 × ₦0</div>
+                <div class="receipt-divider"></div>
+                <div class="receipt-row total">
+                  <span>TOTAL PAID</span>
+                  <strong id="recGrandTotal">₦0</strong>
+                </div>
+                <div class="receipt-meta">
+                  <span id="recMethod">Method: Cash</span>
+                  <span id="recStatus">Status: Paid</span>
+                </div>
+                <p class="receipt-foot">Thank you for your patronage!</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: RESTOCK / PURCHASES -->
+        <section id="tab-purchases" class="tab-panel">
+          <div class="pos-layout">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Record Stock Purchase</h3>
+                  <p class="muted">Automatically recalculates unit cost &amp; increases stock balance</p>
+                </div>
+              </div>
+
+              <form id="purchaseForm" class="stack-form">
+                <label>
+                  <span>Product to Restock</span>
+                  <select id="purchaseProductSelect" required></select>
+                </label>
+
+                <div class="grid-2">
+                  <label>
+                    <span>Quantity Purchased</span>
+                    <input type="number" id="purchaseQtyInput" min="1" value="10" required>
+                  </label>
+                  <label>
+                    <span>Total Purchase Cost</span>
+                    <input type="number" id="purchaseCostInput" min="0" step="0.01" placeholder="e.g. 15000" required>
+                  </label>
+                </div>
+
+                <div class="grid-2">
+                  <label>
+                    <span>Date Bought</span>
+                    <input type="date" id="purchaseDateInput" required>
+                  </label>
+                  <label>
+                    <span>Supplier / Note</span>
+                    <input type="text" id="purchaseNoteInput" placeholder="e.g. Main Wholesaler">
+                  </label>
+                </div>
+
+                <div class="live-summary-box">
+                  <div>
+                    <span>Calculated Cost / Unit</span>
+                    <strong id="purchaseUnitCostPreview">₦0</strong>
+                  </div>
+                  <div>
+                    <span>New Stock After Restock</span>
+                    <strong id="purchaseNewStockPreview" class="accent-green">0 units</strong>
+                  </div>
+                </div>
+
+                <button type="submit" id="submitPurchaseBtn" class="btn btn-primary btn-block">
+                  Save Purchase &amp; Update Stock
+                </button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Purchase History</h3>
+                  <p class="muted">Recent supplier restocks</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Product</th>
+                      <th>Qty</th>
+                      <th>Unit Cost</th>
+                      <th>Total</th>
+                      <th>Supplier</th>
+                    </tr>
+                  </thead>
+                  <tbody id="purchasesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: PRODUCTS & STOCK -->
+        <section id="tab-products" class="tab-panel">
+          <div class="card">
+            <div class="card-head wrap-head">
+              <div>
+                <h3>Product Catalog &amp; Live Inventory</h3>
+                <p class="muted">Add products, adjust prices, and sync directly to Google Forms</p>
+              </div>
+              <div class="head-controls">
+                <input type="search" id="productSearchInput" class="search-input" placeholder="Search products or categories...">
+                <button id="openAddProductBtn" class="btn btn-primary btn-sm">+ New Product</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Sell Price</th>
+                    <th>Avg Cost</th>
+                    <th>Bought</th>
+                    <th>Sold</th>
+                    <th>Stock Balance</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="productsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 5: EASY AUTOMATIONS -->
+        <section id="tab-automations" class="tab-panel">
+          <div class="auto-grid">
+            <div class="card auto-card">
+              <div class="auto-icon">📋</div>
+              <h3>Google Form Auto-Sync</h3>
+              <p>Automatically updates your linked Google Form's <strong>"Product"</strong> dropdown/multiple-choice options whenever you add or rename a product.</p>
+              <button id="triggerSyncFormBtn" class="btn btn-primary btn-sm">Run Form Sync Now</button>
+            </div>
+
+            <div class="card auto-card">
+              <div class="auto-icon">🛡️</div>
+              <h3>Oversell Stock Guard</h3>
+              <p>Prevents staff from recording a sale higher than available stock—both in this web app and directly inside your Google Sheet.</p>
+              <span class="status-tag ok">● Active Protection</span>
+            </div>
+
+            <div class="card auto-card">
+              <div class="auto-icon">🔔</div>
+              <h3>Low-Stock Smart Alerts</h3>
+              <p>Automatically flags items at or below <strong>5 units</strong> and optionally emails the business owner when a sale triggers low inventory.</p>
+              <div class="inline-setting">
+                <label for="thresholdInput">Alert Threshold:</label>
+                <input type="number" id="thresholdInput" min="1" max="500" value="5">
+              </div>
+            </div>
+
+            <div class="card auto-card">
+              <div class="auto-icon">⚙️</div>
+              <h3>1-Click Google Sheet Setup</h3>
+              <p>Starting fresh? Automatically create the <code>Products</code>, <code>Sales</code>, and <code>Purchases</code> tabs with headers and live formulas.</p>
+              <button id="setupSheetsBtn" class="btn btn-secondary btn-sm">Initialize Sheet Tabs</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3>Connect Your Google Sheet in 3 Easy Steps</h3>
+                <p class="muted">Zero server costs — runs 100% on your Google account</p>
+              </div>
+            </div>
+            <ol class="setup-steps">
+              <li>Open your Google Sheet, go to <strong>Extensions → Apps Script</strong>, and paste the contents of <code>backend/Code.gs</code>.</li>
+              <li>Select <code>installAutomations</code> in the top toolbar and click <strong>Run</strong> once to activate automatic Form sync and Sheet stock protection.</li>
+              <li>Click <strong>Deploy → New deployment → Web app</strong> (Execute as: <em>Me</em>, Who has access: <em>Anyone</em>), copy the Web App URL, and paste it on the login screen.</li>
+            </ol>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add / Edit Product Modal -->
+  <div id="productModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-box animate-pop">
+      <div class="modal-head">
+        <h3 id="modalTitle">Add Product</h3>
+        <button class="icon-btn" data-close-modal aria-label="Close">✕</button>
+      </div>
+      <form id="productForm" class="stack-form">
+        <input type="hidden" id="prodIdInput">
+        <label>
+          <span>Product Name</span>
+          <input type="text" id="prodNameInput" placeholder="e.g. Pure Blossom Honey 500g" required>
+        </label>
+        <div class="grid-2">
+          <label>
+            <span>Category</span>
+            <input type="text" id="prodCategoryInput" placeholder="e.g. Raw Honey" value="General">
+          </label>
+          <label>
+            <span>Selling Price</span>
+            <input type="number" id="prodPriceInput" min="0" step="0.01" placeholder="0.00" required>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+          <button type="submit" id="saveProductBtn" class="btn btn-primary">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
